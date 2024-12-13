@@ -50,118 +50,92 @@ def parseInput(values):
    return garden
 
 
-# Recursively determine the points within the plot and
-# the perimeter of the plot.
-def getPlot(garden, x, y, crop, points, perim):
+# Recursively determine the points within the plot.
+def getPlot(garden, x, y, crop, points):
    # If the point is outside the garden, then done.
    if (x < 0) or (x >= len(garden[0])) or (y < 0) or (y >= len(garden)):
-      perim.add((x, y))
-      return (points, perim)
-   # If the point contains a different crop. then done.
+      return points
+   # If a different crop => done.
    elif garden[y][x] != crop:
-      perim.add((x, y))
-      return (points, perim)
+      return points
    else:
       # Add current point to set of visited points
       points.add((x, y))
+      
       # For unvisited neighbors, recurse.
-      perimeter = set()
       if (x - 1, y) not in points:
-         plots, perim2 = getPlot(garden, x - 1, y, crop, points, perim)
-         perimeter.union(perim2)
+         plots = getPlot(garden, x - 1, y, crop, points)
       if (x + 1, y) not in points:
-         plots, perim2 = getPlot(garden, x + 1, y, crop, points, perim)
-         perimeter.union(perim2)
+         plots = getPlot(garden, x + 1, y, crop, points)
       if (x, y - 1) not in points:
-         plots, perim2 = getPlot(garden, x, y - 1, crop, points, perim)
-         perimeter.union(perim2)
+         plots = getPlot(garden, x, y - 1, crop, points)
       if (x, y + 1) not in points:
-         plots, perim2 = getPlot(garden, x, y + 1, crop, points, perim)
-         perimeter.union(perim2)
+         plots = getPlot(garden, x, y + 1, crop, points)
 
-      # Return points within plot and perimeter.
-      return (points, perim.union(perimeter))
-
-def numCorners(x, y, plot):
-   if ((x - 1, y) in plot) and ((x + 1, y) in plot) and ((x, y - 1) in plot) and ((x, y + 1) in plot):
-      return 4
-   elif ((x - 1, y) in plot) and ((x + 1, y) in plot) and ((x, y - 1) in plot):
-      return 3
-   elif ((x - 1, y) in plot) and ((x + 1, y) in plot) and ((x, y + 1) in plot):
-      return 3
-   elif ((x - 1, y) in plot) and ((x, y - 1) in plot) and ((x, y + 1) in plot):
-      return 3
-   elif ((x + 1, y) in plot) and ((x, y - 1) in plot) and ((x, y + 1) in plot):
-      return 3
-   elif ((x + 1, y) in plot) and ((x, y - 1) in plot):
-      return 1
-   elif ((x + 1, y) in plot) and ((x, y + 1) in plot):
-      return 1
-   elif ((x - 1, y) in plot) and ((x, y - 1) in plot):
-      return 1
-   elif ((x - 1, y) in plot) and ((x, y + 1) in plot):
-      return 1
-   else:
-      return 0
+      # Return points within plot.
+      return points
 
 
-def calcSides(plot, perim):
+# Determine the number of edges for the given convex
+# corner. The input point (x, y) is part of the plot.
+# Determine if it is an outside corner point for
+# multiple edges.
+def numConvexCorners(x, y, plot):
+   corners = 0
+   if ((x - 1, y) not in plot) and ((x, y - 1) not in plot):
+      corners += 1
+   if ((x - 1, y) not in plot) and ((x, y + 1) not in plot):
+      corners += 1
+   if ((x + 1, y) not in plot) and ((x, y - 1) not in plot):
+      corners += 1
+   if ((x + 1, y) not in plot) and ((x, y + 1) not in plot):
+      corners += 1
+
+   return corners
+
+
+# Determine the number of edges for the given concave
+# corner. The input point (x, y) is part of the plot.
+# Determine if it is an inside corner point for
+# multiple edges.
+def numConcaveCorners(x, y, plot):
+   corners = 0
+   if ((x - 1, y) in plot) and ((x, y - 1) in plot) and ((x - 1, y - 1) not in plot):
+      corners += 1
+   if ((x - 1, y) in plot) and ((x, y + 1) in plot) and ((x - 1, y + 1) not in plot):
+      corners += 1
+   if ((x + 1, y) in plot) and ((x, y - 1) in plot) and ((x + 1, y - 1) not in plot):
+      corners += 1
+   if ((x + 1, y) in plot) and ((x, y + 1) in plot) and ((x + 1, y + 1) not in plot):
+      corners += 1
+
+   return corners
+
+
+# Calculate the number of sides for the given plot.
+# This is done by determining the corner points and
+# the number of edges associated with each corner.
+def calcSides(plot):
+   # Convert the set of plot points for iteration.
    points = list(plot)
-   corners = set()
+
    num_corners = 0
    for p in points:
       x, y = p
-      # Handle convex
-      if ((x - 1, y - 1) not in perim) and ((x - 1, y - 1) not in plot):
-         if (x - 1, y - 1) not in corners:
-            corners.add((x - 1, y - 1))
-            num_corners += 1
-      if (x - 1, y + 1) not in perim and ((x - 1, y + 1) not in plot):
-         if (x - 1, y + 1) not in corners:
-            corners.add((x - 1, y + 1))
-            num_corners += 1
-      if (x + 1, y - 1) not in perim and ((x + 1, y - 1) not in plot):
-         if (x + 1, y - 1) not in corners:
-            corners.add((x + 1, y - 1))
-            num_corners += 1
-      if (x + 1, y + 1) not in perim and ((x + 1, y + 1) not in plot):
-         if (x + 1, y + 1) not in corners:
-            corners.add((x + 1, y + 1))
-            num_corners += 1
+      # Handle convex corners
+      update = numConvexCorners(x, y, plot)
+      num_corners += update
 
-      # Handle concave
-      if ((x - 1, y) in perim) and ((x - 1, y) not in corners):
-         c = numCorners(x - 1, y, plot)
-         if c > 0:
-            corners.add((x - 1, y))
-            num_corners += c
-               
-         
-      if ((x + 1, y) in perim) and ((x + 1, y) not in corners):
-         c = numCorners(x + 1, y, plot)
-         if c > 0:
-            corners.add((x + 1, y))
-            num_corners += c
-            
-      if ((x, y - 1) in perim) and ((x, y - 1) not in corners):
-         c = numCorners(x, y - 1, plot)
-         if c > 0:
-            corners.add((x, y - 1))
-            num_corners += c
-            
-      if ((x, y + 1) in perim) and ((x, y + 1) not in corners):
-         c = numCorners(x, y + 1, plot)
-         if c > 0:
-            corners.add((x, y + 1))
-            num_corners += c
+      # Handle concave corners
+      update = numConcaveCorners(x, y, plot)
+      num_corners += update
 
-   print('corners = ' + str(corners))
    return num_corners
 
    
 if __name__ == '__main__':
    # Read and parse input to list of tuples.
-   values = readFile("input12a2.txt")
+   values = readFile("input12b.txt")
    garden = parseInput(values)
 
    # Create a list of unvisited points (all points).
@@ -170,23 +144,18 @@ if __name__ == '__main__':
       for x in range(len(garden[y])):
          plots.append((x, y))
 
-   for line in values:
-      print(line)
-
    # While unassigned plot points remain, get the next
    # plot.
    price = 0
    while len(plots) > 0:
-      # Get next unvisited point, its associated plot
-      # points, and its perimeter.
+      # Get next unvisited point and its associated plot.
       x, y = plots.pop(0)
-      print('crop = ' + garden[y][x])
-      points, perim = getPlot(garden, x, y, garden[y][x], set(), set())
+      points = getPlot(garden, x, y, garden[y][x], set())
 
-      print('points = ' + str(points))
-      print('perim = ' + str(perim))
-      num_sides = calcSides(points, perim)
-      print('num sides = ' + str(num_sides))
+      # Determine the number of sides in the plot.
+      num_sides = calcSides(points)
+
+      # Calculate the cost of fencing the plot.
       price += len(points) * num_sides
       
       # Remove the found plot points from the set of
