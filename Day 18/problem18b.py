@@ -104,8 +104,7 @@ def bfs(grid, start, end):
 
 if __name__ == '__main__':
    # Read and parse input to a list containing the
-   # register values and a list containing the
-   # program.
+   # coordinates of the falling bytes.
    values = readFile("input18b.txt")
    coords = parseInput(values)
 
