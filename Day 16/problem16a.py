@@ -219,7 +219,7 @@ def searchGraph(graph, vertices, start, end):
 
 
 if __name__ == '__main__':
-   # Read and parse input to list of tuples.
+   # Read and parse input to list of lists of char.
    values = readFile("input16b.txt")
    maze = parseInput(values)
 
