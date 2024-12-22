@@ -49,9 +49,9 @@ def findLocation(maze, marker):
 
 # This function uses breadth-first search to find the
 # distance of the shortest path from the start node to
-# the end node. It returns a set of all vertices along
-# this path along with the corresponding distance of
-# the vertex from the start node (S).
+# the end node. It returns the dictionary of nodes on
+# the path and their corresponding distance from the
+# start node.
 def bfs(grid, start, end):
    toVisit = [ (start, 0) ]
    visited = set()
