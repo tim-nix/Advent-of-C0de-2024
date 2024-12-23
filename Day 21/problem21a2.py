@@ -44,168 +44,102 @@ def findLocation(grid, marker):
 
 
 #
-def getMoves(sequence):
-   moves = []
-   x1, y1 = sequence[0]
-   for s in sequence[1:]:
-      x2, y2 = s
-      delta_x = x2 - x1
-      delta_y = y2 - y1
-      
-      if delta_x == 1:
-         moves.append('>')
-
-      if delta_x == -1:
-         moves.append('<')
-
-      if delta_y == 1:
-         moves.append('v')
-
-      if delta_y == -1:
-         moves.append('^')
-
-      x1 = x2
-      y1 = y2
-
-   return moves
-      
-
-#
 def getSequences(start, stop, none):
-   delta_x = end[0] - start[0]
-   delta_y = end[1] - start[1]
+   if start == stop:
+      return [ 'A' ]
    
-   sequence1 = []
-   sequence2 = []
-   if (delta_x > 0) and (delta_y > 0):
-      for x in range(abs(delta_x)):
-         sequence1.append((start[0] + x, start[1]))
-         sequence2.insert(0, (end[0] - x, end[1]))
-
-      for y in range(abs(delta_y) + 1):
-         sequence1.append((end[0], start[1] + y))
-         sequence2.insert(0, (start[0], end[1] - y))
-
-   elif (delta_x > 0) and (delta_y < 0):
-      for x in range(abs(delta_x)):
-         sequence1.append((start[0] + x, start[1]))
-         sequence2.insert(0, (end[0] - x, end[1]))
-
-      for y in range(abs(delta_y) + 1):
-         sequence1.append((end[0], start[1] - y))
-         sequence2.insert(0, (start[0], end[1] + y))
-
-   elif (delta_x < 0) and (delta_y > 0):
-      for x in range(abs(delta_x)):
-         sequence1.append((start[0] - x, start[1]))
-         sequence2.insert(0, (end[0] + x, end[1]))
-
-      for y in range(abs(delta_y) + 1):
-         sequence1.append((end[0], start[1] + y))
-         sequence2.insert(0, (start[0], end[1] - y))
-         
-   elif (delta_x < 0) and (delta_y < 0):
-      for x in range(abs(delta_x)):
-         sequence1.append((start[0] - x, start[1]))
-         sequence2.insert(0, (end[0] + x, end[1]))
-
-      for y in range(abs(delta_y) + 1):
-         sequence1.append((end[0], start[1] - y))
-         sequence2.insert(0, (start[0], end[1] + y))
-
-   elif (delta_x < 0):
-      for x in range(abs(delta_x) + 1):
-         sequence1.append((start[0] - x, start[1]))
-
-   elif (delta_x > 0):
-      for x in range(abs(delta_x) + 1):
-         sequence1.append((start[0] + x, start[1]))
-
-   elif (delta_y > 0):
-      for y in range(abs(delta_y) + 1):
-         sequence1.append((start[0], start[1] + y))
-
-   elif (delta_y < 0):
-      for y in range(abs(delta_y) + 1):
-         sequence1.append((start[0], start[1] - y))
-
-   if none in sequence1:
-      sequence1 = []
-
-   if none in sequence2:
-      sequence2 = []
-
-   moves = []
-   if len(sequence1) > 0:
-      moves.append(getMoves(sequence1))
-
-   if len(sequence2) > 0:
-      moves.append(getMoves(sequence2))
-
-   return moves
-
+   delta_x = abs(stop[0] - start[0])
+   delta_y = abs(stop[1] - start[1])
    
+   x_move = ''
+   if stop[0] > start[0]:
+      x_move = '>'
+   else:
+      x_move = '<'
+
+   y_move = ''
+   if stop[1] > start[1]:
+      y_move = 'v'
+   else:
+      y_move = '^'
+
+   paths = [ x_move * delta_x + y_move * delta_y, y_move * delta_y + x_move * delta_x ]
+   
+   for path in paths:
+      current = start
+      for move in path:
+         match move:
+            case '>':
+               next_loc = (current[0] + 1, current[1])
+            case '<':
+               next_loc = (current[0] - 1, current[1])
+            case '^':
+               next_loc = (current[0], current[1] - 1)
+            case 'v':
+               next_loc = (current[0], current[1] + 1)
+          
+         if next_loc == none:
+            paths.remove(path)
+            break
+
+         current = next_loc
+
+   return [ p + 'A' for p in paths ]
+   
+ 
 if __name__ == '__main__':
    # Read and parse input to list of lists of char.
    values = readFile("input21a.txt")
    codes = parseInput(values)
 
-   keypad = [ [ '7', '8', '9' ],
-              [ '4', '5', '6' ],
-              [ '1', '2', '3' ],
-              [ 'B', '0', 'A' ] ]
+   keypad = [ '789', '456', '123', 'B0A' ]
+   dirpad = [ 'B^A', '<v>' ]
 
-   dirpad = [ [ 'B', '^', 'A' ],
-              [ '<', 'v', '>' ] ]
-
-   for line in keypad:
-      print(''.join(line))
-
-   start = findLocation(keypad, '7')
-   end   = findLocation(keypad, '0')
-   print('start = ' + str(start))
-   print('end   = ' + str(end))
-   print(getSequences(start, end, (0, 3)))
-         
-
-   """
    # First robot pushing numeric keypad to unlock the
    # door.
    start = findLocation(keypad, 'A')
    r1_sequences = []
    for code in codes[:1]:
-      r1_sequence = []
+      r1_sequence = [ '' ]
       for key in code:
          end = findLocation(keypad, key)
-         toButton = genKeypad(start, end)
-         r1_sequence += toButton
-         r1_sequence.append('A')
+         toButton = getSequences(start, end, (0, 3))
+         next_sequence = []
+         for r1 in r1_sequence:
+            for tB in toButton:
+               next_sequence.append(r1 + tB)
+         r1_sequence = list(set(next_sequence))
          start = end
       r1_sequences.append(r1_sequence)
 
    for r_s in r1_sequences:
-      print(''.join(r_s))
+      print(r_s)
    print()         
 
-   # Second robot pushing the directional keypad to
-   # control the first robot.
+
    start = findLocation(dirpad, 'A')
    r2_sequences = []
    for r1_sequence in r1_sequences:
-      r2_sequence = []
-      for key in r1_sequence:
-         end = findLocation(dirpad, key)
-         toButton = genKeypad(start, end)
-         r2_sequence += toButton
-         r2_sequence.append('A')
-         start = end
+      r2_sequence = [ '' ]
+      for combo in r1_sequence:
+         for key in combo:
+            end = findLocation(dirpad, key)
+            toButton = getSequences(start, end, (0, 0))
+            next_sequence = []
+            for r2 in r2_sequence:
+               for tB in toButton:
+                  next_sequence.append(r2 + tB)
+            r2_sequence = list(set(next_sequence))
+            start = end
       r2_sequences.append(r2_sequence)
 
-   for r_s in r2_sequences:
-      print(''.join(r_s))
+   for seq in r2_sequences:
+      seq.sort()
+      for r in seq:
+         print(r)
    print()
 
-
+   """
    # Human pushing the directional keypad to control
    # the second robot.
    start = findLocation(dirpad, 'A')
