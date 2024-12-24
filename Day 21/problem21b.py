@@ -1,8 +1,8 @@
 # This program solves the key press sequence for a
-# human using a direction keypad to control Robot 1.
-# Robot 1 is using a direction keypad to control Robot
-# 2. Robot 2 is using a numeric keypad to unlock a
-# door.
+# human using a direction keypad to control a sequence
+# of 25 robots, the last of which ismusing a direction
+# keypad to control a robot using a numeric keypad to
+# unlock a door.
 
 # The numeric keypad has four rows of buttons: 789,
 # 456, 123, and finally an empty gap followed by 0A.
@@ -25,6 +25,7 @@
 
 # The final answer is the sum of the complexities.
 
+from functools import cache
 
 # Read in the data file and convert it to a list
 # of strings.
@@ -115,6 +116,25 @@ def getSequences(start, stop, none):
 
    # Append 'A' to each remaining sequence and return.
    return [ p + 'A' for p in paths ]
+
+
+#
+@cache
+def findSequences(r):
+   start = findLocation(dirpad, 'A')
+   r2_sequence = [ '' ]
+   for key in r:
+      end = findLocation(dirpad, key)
+      toButton = getSequences(start, end, dir_none)
+      next_sequence = []
+      for r2 in r2_sequence:
+         for tB in toButton:
+            next_sequence.append(r2 + tB)
+      r2_sequence = list(set(next_sequence))
+      start = end
+
+   return r2_sequence
+
    
  
 if __name__ == '__main__':
@@ -127,6 +147,8 @@ if __name__ == '__main__':
    key_none = findLocation(keypad, 'B')
    dirpad = [ 'B^A', '<v>' ]
    dir_none = findLocation(dirpad, 'B')
+
+   num_robots = 3
 
    
    # Generate the key presses on the directional
@@ -147,51 +169,29 @@ if __name__ == '__main__':
          r1_sequence = list(set(next_sequence))
          start = end
 
-      # Generate the key presses on the directional
-      # keypad used to control Robot 1 so that it
-      # enters the control sequence for Robot 2.
-      r2_sequences = []
-      for r in r1_sequence:
-         start = findLocation(dirpad, 'A')
-         r2_sequence = [ '' ]
-         for key in r:
-            end = findLocation(dirpad, key)
-            toButton = getSequences(start, end, dir_none)
-            next_sequence = []
-            for r2 in r2_sequence:
-               for tB in toButton:
-                  next_sequence.append(r2 + tB)
-            r2_sequence = list(set(next_sequence))
-            start = end
-         r2_sequences += r2_sequence
+      #
+      for r in range(num_robots):
+         r2_sequences = []
+         for r in r1_sequence:
+            r2_sequence = findSequences(r)
+            r2_sequences += r2_sequence
 
-      # Generate the key presses on the directional
-      # keypad entered by the human to control Robot
-      # 1.
-      r3_sequences = []
-      for r in r2_sequences:
-         start = findLocation(dirpad, 'A')
-         r3_sequence = [ '' ]
-         for key in r:
-            end = findLocation(dirpad, key)
-            toButton = getSequences(start, end, dir_none)
-            next_sequence = []
-            for r3 in r3_sequence:
-               for tB in toButton:
-                  next_sequence.append(r3 + tB)
-            r3_sequence = list(set(next_sequence))
-            start = end
-         r3_sequences += r3_sequence
+         r1_sequence = r2_sequences
 
-      # Search through all of the generated key
-      # sequences and find the one of minimum
-      # length.
-      min_length = len(r3_sequences[0])
-      min_sequence = r3_sequences[0]
-      for r3 in r3_sequences:
-         if len(r3) < min_length:
-            min_length = len(r3)
-            min_sequence = r3
+         # Search through all of the generated key
+         # sequences and find the one of minimum
+         # length.
+         min_length = len(r1_sequence[0])
+         for r1 in r1_sequence:
+            if len(r1) < min_length:
+               min_length = len(r1)
+
+         min_sequence = []
+         for r1 in r1_sequence:
+            if len(r1) == min_length:
+               min_sequence.append(r1)
+               
+         r1_sequence = min_sequence
 
       # Calculate the complexity of this sequence and
       # add it to the sum.
