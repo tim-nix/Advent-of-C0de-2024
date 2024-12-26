@@ -25,7 +25,19 @@
 
 # The final answer is the sum of the complexities.
 
+from itertools import pairwise
 from functools import cache
+
+
+# Store the structure of the keypads and the
+# locations of the non-buttons (marked as 'B').
+numpad = [ '789', '456', '123', 'B0A' ]
+num_none = (0, 3)
+dirpad = [ 'B^A', '<v>' ]
+dir_none = (0, 0)
+   
+num_robots = 25
+
 
 # Read in the data file and convert it to a list
 # of strings.
@@ -65,25 +77,25 @@ def findLocation(grid, marker):
 # minimizes the number of moves (either all vertical
 # moves followed by all horizontal moves OR all
 # horizontal moves followed by all vertical moves).
-def getSequences(start, stop, none):
+def getSequences(start, end, none):
    # If already at the destination, simply press 'A'.
-   if start == stop:
+   if start == end:
       return [ 'A' ]
 
    # Determine the change in x and the change in y.
-   delta_x = abs(stop[0] - start[0])
-   delta_y = abs(stop[1] - start[1])
+   delta_x = abs(end[0] - start[0])
+   delta_y = abs(end[1] - start[1])
 
    # Associate change is the two directions with the
    # associated symbol.
    x_move = ''
-   if stop[0] > start[0]:
+   if end[0] > start[0]:
       x_move = '>'
    else:
       x_move = '<'
 
    y_move = ''
-   if stop[1] > start[1]:
+   if end[1] > start[1]:
       y_move = 'v'
    else:
       y_move = '^'
@@ -118,85 +130,72 @@ def getSequences(start, stop, none):
    return [ p + 'A' for p in paths ]
 
 
-#
+# This recursive function generates the sequence of
+# moves needed for each robot within the sequence and
+# returns the length of the shortest sequence. Thus,
+# the final result is the length of the shortest
+# sequence needed for the human to enter for the last
+# robot to enter the code on the numerical keypad.
 @cache
-def findSequences(r):
-   start = findLocation(dirpad, 'A')
-   r2_sequence = [ '' ]
-   for key in r:
-      end = findLocation(dirpad, key)
-      toButton = getSequences(start, end, dir_none)
-      next_sequence = []
-      for r2 in r2_sequence:
-         for tB in toButton:
-            next_sequence.append(r2 + tB)
-      r2_sequence = list(set(next_sequence))
-      start = end
+def findSequences(code, robot):
+   # Set the appropriate keypad and the location of
+   # blank based on which robot is being moved (the
+   # level of recursion).
+   if robot == 0:
+      pad = numpad
+      none = num_none
+   else:
+      pad = dirpad
+      none = dir_none
 
-   return r2_sequence
+   # Start at the 'A' location on the pad.
+   code = 'A' + code
+   sequence_length = 0
+   # Select the next two move characters denoting the
+   # starting location and ending location.
+   for start_dir, end_dir in pairwise(code):
+      # Convert to grid coordinates (x, y).
+      start = findLocation(pad, start_dir)
+      end = findLocation(pad, end_dir)
+
+      # Get the list of sequences for the move.
+      sequences = getSequences(start, end, none)
+
+      # If the last robot, return the length of the
+      # shortest sequence.
+      if robot == num_robots:
+         sequence_length += min(map(len, sequences))
+      else:
+         # Otherwise, return the length of shortest
+         # sequence including the move sequence of all
+         # other robots.
+         min_length = -1
+         for seq in sequences:
+            seq_length = findSequences(seq, robot + 1)
+            if min_length == -1:
+               min_length = seq_length
+            elif seq_length < min_length:
+               min_length = seq_length
+               
+         sequence_length += min_length
+
+   # Return the length of the shortest sequence.
+   return sequence_length
 
    
  
 if __name__ == '__main__':
    # Read the file input as a list of strings.
    codes = readFile("input21b.txt")
-
-   # Store the structure of the keypads and the
-   # locations of the non-buttons (marked as 'B').
-   keypad = [ '789', '456', '123', 'B0A' ]
-   key_none = findLocation(keypad, 'B')
-   dirpad = [ 'B^A', '<v>' ]
-   dir_none = findLocation(dirpad, 'B')
-
-   num_robots = 3
-
    
-   # Generate the key presses on the directional
-   # keypad to control Robot 2 so that it correctly
-   # enters the door code on the numerical keypad.
+   # Initialize the complexity score.
    complexity = 0
-   # Iterate through each door code.
+   
+   # Iterate through each door code, get the length of
+   # the shortest sequence, and calculate the
+   # complexity score for the code.
    for code in codes:
-      start = findLocation(keypad, 'A')
-      r1_sequence = [ '' ]
-      for key in code:
-         end = findLocation(keypad, key)
-         toButton = getSequences(start, end, key_none)
-         next_sequence = []
-         for r1 in r1_sequence:
-            for tB in toButton:
-               next_sequence.append(r1 + tB)
-         r1_sequence = list(set(next_sequence))
-         start = end
-
-      #
-      for r in range(num_robots):
-         r2_sequences = []
-         for r in r1_sequence:
-            r2_sequence = findSequences(r)
-            r2_sequences += r2_sequence
-
-         r1_sequence = r2_sequences
-
-         # Search through all of the generated key
-         # sequences and find the one of minimum
-         # length.
-         min_length = len(r1_sequence[0])
-         for r1 in r1_sequence:
-            if len(r1) < min_length:
-               min_length = len(r1)
-
-         min_sequence = []
-         for r1 in r1_sequence:
-            if len(r1) == min_length:
-               min_sequence.append(r1)
-               
-         r1_sequence = min_sequence
-
-      # Calculate the complexity of this sequence and
-      # add it to the sum.
-      code_num = ''.join(code[:-1])
-      complexity += int(code_num) * min_length
+      complexity += int(''.join(code[:-1])) * findSequences(code, 0)
 
    # Display the results.
    print('complexity = ' + str(complexity))
