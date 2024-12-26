@@ -25,7 +25,9 @@
 
 # The final answer is the sum of the complexities.
 
-from itertools import pairwise
+
+# Library used for memoization of the 'findSequences'
+# function call.
 from functools import cache
 
 
@@ -150,10 +152,16 @@ def findSequences(code, robot):
 
    # Start at the 'A' location on the pad.
    code = 'A' + code
+
+   # Keep track of the sum of the shortest sequences.
    sequence_length = 0
+   
    # Select the next two move characters denoting the
    # starting location and ending location.
-   for start_dir, end_dir in pairwise(code):
+   for code_i in range(len(code) - 1):
+      start_dir = code[code_i]
+      end_dir = code[code_i + 1]
+      
       # Convert to grid coordinates (x, y).
       start = findLocation(pad, start_dir)
       end = findLocation(pad, end_dir)
